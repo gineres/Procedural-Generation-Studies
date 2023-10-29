@@ -9,6 +9,9 @@ public class MeshGenerator : MonoBehaviour
     List <int> triangles;
 
     Dictionary<int,List<Triangle>> triangleDictionary = new Dictionary<int, List<Triangle>>();
+    List<List<int>> outlines = new List<List<int>>();
+    HashSet<int> checkedVertices = new HashSet<int>(); // Mais rapido de fazer a operação de contains
+
     public void GenerateMesh(int [,] map, float squareSize) {
         vertices = new List<Vector3>();
         triangles = new List<int>();
@@ -86,6 +89,10 @@ public class MeshGenerator : MonoBehaviour
             // 4 active nodes
             case 15:
                 MeshFromPoints(square.topLeft, square.topRight, square.bottomRight, square.bottomLeft);
+                checkedVertices.Add(square.topLeft.vertexIndex);
+                checkedVertices.Add(square.topRight.vertexIndex);
+                checkedVertices.Add(square.bottomRight.vertexIndex);
+                checkedVertices.Add(square.bottomLeft.vertexIndex);
                 break;
         }
     }
@@ -144,7 +151,7 @@ public class MeshGenerator : MonoBehaviour
             {
                 int vertexB = triangle[j]; // Fazendo uso do indexer
 
-                if (vertexB != vertexIndex)
+                if (vertexB != vertexIndex && !checkedVertices.Contains(vertexB))
                 {
                     if (IsOutlineEdge(vertexIndex, vertexB)){
                         return vertexB;
@@ -152,7 +159,7 @@ public class MeshGenerator : MonoBehaviour
                 }
             }
         }
-        
+
         return -1;
     }
 
@@ -184,6 +191,35 @@ public class MeshGenerator : MonoBehaviour
             List<Triangle> triangleList = new List<Triangle>();
             triangleList.Add(triangle);
             triangleDictionary.Add(vertexIndexKey, triangleList);
+        }
+    }
+
+    void CalculateMeshOutlines() {
+        for (int vertexIndex = 0; vertexIndex < vertices.Count; vertexIndex ++)
+        {
+            if (!checkedVertices.Contains(vertexIndex))
+            {
+                int newOutlineVertex = GetConnectedOutlineVertex(vertexIndex);
+                if (newOutlineVertex != -1)
+                {
+                    checkedVertices.Add(vertexIndex);
+                    List<int> newOutline = new List<int>();
+                    newOutline.Add(vertexIndex);
+                    outlines.Add(newOutline);
+                    FollowOutline(newOutlineVertex, outlines.Count - 1);
+                    outlines[outlines.Count-1].Add(vertexIndex);
+                }
+            }
+        }
+    }
+
+    void FollowOutline(int vertexIndex, int outlineIndex){
+        outlines[outlineIndex].Add(vertexIndex);
+        checkedVertices.Add(vertexIndex);
+        int nextVertexIndex = GetConnectedOutlineVertex(vertexIndex); // Ve se há proximos
+        if (nextVertexIndex != -1)
+        {
+            FollowOutline(nextVertexIndex, outlineIndex);
         }
     }
 
