@@ -5,6 +5,7 @@ using UnityEngine;
 public class MeshGenerator : MonoBehaviour
 {
     public SquareGrid squareGrid;
+    public MeshFilter walls;
     List <Vector3> vertices;
     List <int> triangles;
 
@@ -13,9 +14,14 @@ public class MeshGenerator : MonoBehaviour
     HashSet<int> checkedVertices = new HashSet<int>(); // Mais rapido de fazer a operação de contains
 
     public void GenerateMesh(int [,] map, float squareSize) {
+        outlines.Clear();
+        triangleDictionary.Clear();
+        checkedVertices.Clear();
+
+        squareGrid = new SquareGrid(map, squareSize);
+
         vertices = new List<Vector3>();
         triangles = new List<int>();
-        squareGrid = new SquareGrid(map, squareSize);
 
         for (int x = 0; x < squareGrid.squares.GetLength(0); x++)
         {
@@ -31,6 +37,41 @@ public class MeshGenerator : MonoBehaviour
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.RecalculateNormals();
+
+        CreateWallMesh ();
+    }
+
+    void CreateWallMesh(){
+        CalculateMeshOutlines();
+
+        List<Vector3> wallVertices = new List<Vector3>();
+        List<int> wallTriangles = new List<int>();
+        Mesh wallMesh = new Mesh();
+        float wallHeight = 5;
+
+        foreach (List<int> outline in outlines)
+        {
+            for (int i = 0; i < outline.Count - 1; i++)
+            {
+                int startIndex = wallVertices.Count;
+                wallVertices.Add(vertices[outline[i]]); // esquerda
+                wallVertices.Add(vertices[outline[i+1]]); // direita
+                wallVertices.Add(vertices[outline[i]] - Vector3.up * wallHeight); // inferior esquerda
+                wallVertices.Add(vertices[outline[i+1]] - Vector3.up * wallHeight); // inferior direita
+
+                wallTriangles.Add(startIndex + 0);
+                wallTriangles.Add(startIndex + 2);
+                wallTriangles.Add(startIndex + 3);
+
+                wallTriangles.Add(startIndex + 3);
+                wallTriangles.Add(startIndex + 1);
+                wallTriangles.Add(startIndex + 0);
+            }
+        }
+
+        wallMesh.vertices = wallVertices.ToArray();
+        wallMesh.triangles = wallTriangles.ToArray();
+        walls.mesh = wallMesh;
     }
 
     void TriangulateSquare(Square square) {
