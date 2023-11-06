@@ -151,6 +151,12 @@ public class MapGenerator : MonoBehaviour
 
     void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB){
         Room.ConnectRooms(roomA, roomB); // Por isso que o método é estático!
+
+        Debug.DrawLine(CoordToWorldPoint(tileA), CoordToWorldPoint(tileB), Color.blue, 100);
+    }
+
+    Vector3 CoordToWorldPoint(Coord tile){
+        return new Vector3 (-width / 2 + .5f + tile.tileX, 2, -height / 2 + .5f + tile.tileY);
     }
 
     void RandomFillMap(){

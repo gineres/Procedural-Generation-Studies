@@ -242,7 +242,7 @@ MonoBehaviour:
   height: 100
   seed: ola
   useRandomSeed: 1
-  randomFillPercent: 46
+  randomFillPercent: 53
 --- !u!4 &817153113
 Transform:
   m_ObjectHideFlags: 0
@@ -251,7 +251,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 817153111}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 112.56312, y: 74.32202, z: 83.05226}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
