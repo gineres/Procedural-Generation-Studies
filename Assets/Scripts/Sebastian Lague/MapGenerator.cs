@@ -64,7 +64,6 @@ public class MapGenerator : MonoBehaviour
 
     void ProcessMap(){
         List<List<Coord>> wallRegions = GetRegions(1);
-
         int wallThresholdSize = 50;
 
         foreach (List<Coord> wallRegion in wallRegions)
@@ -80,8 +79,8 @@ public class MapGenerator : MonoBehaviour
         }
 
         List<List<Coord>> roomRegions = GetRegions(0);
-
         int roomThresholdSize = 50;
+        List<Room> survivingRooms = new List<Room>();
 
         foreach (List<Coord> roomRegion in roomRegions)
         {
@@ -93,7 +92,65 @@ public class MapGenerator : MonoBehaviour
                     map[tile.tileX,tile.tileY] = 1;
                 }
             }
+            else // No caso de não irmos remover os quartinhos, vamos guardar ele na lista de quartos vivos
+            {
+                survivingRooms.Add(new Room(roomRegion, map));
+            }
         }
+
+        ConnectClosestRooms(survivingRooms);
+    }
+
+    void ConnectClosestRooms (List<Room> allRooms){
+        int bestDistance = 0;
+        Coord bestTileA = new Coord();
+        Coord bestTileB = new Coord();
+        Room bestRoomA = new Room();
+        Room bestRoomB = new Room();
+        bool possibleConnectionFound = false;
+
+        foreach (Room roomA in allRooms){
+            possibleConnectionFound = false;
+
+            foreach (Room roomB in allRooms){
+                if (roomA == roomB)
+                {
+                    continue;
+                }
+                if (roomA.IsConnected(roomB))
+                {
+                    possibleConnectionFound = false;
+                    break;
+                }
+                // Vai comparar cada pontinho das bordas de cada "quarto", e a menor distância encontrada vai ser conectada
+                for (int tileIndexA = 0; tileIndexA < roomA.edgeTiles.Count; tileIndexA++){
+                    for (int tileIndexB = 0; tileIndexB < roomB.edgeTiles.Count; tileIndexB++){
+                        Coord tileA = roomA.edgeTiles[tileIndexA];
+                        Coord tileB = roomB.edgeTiles[tileIndexB];
+                        int distanceBetweenRooms = (int)(Mathf.Pow(tileA.tileX - tileB.tileX, 2) + Mathf.Pow(tileA.tileY - tileB.tileY, 2));
+
+                        if (distanceBetweenRooms < bestDistance || !possibleConnectionFound)
+                        {
+                            possibleConnectionFound = true;
+                            bestDistance = distanceBetweenRooms;
+                            bestTileA = tileA;
+                            bestTileB = tileB;
+                            bestRoomA = roomA;
+                            bestRoomB = roomB;
+                        }
+                    }
+                }
+            }
+
+            if (possibleConnectionFound)
+            {
+                CreatePassage(bestRoomA, bestRoomB, bestTileA, bestTileB);
+            }
+        }
+    }
+
+    void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB){
+        Room.ConnectRooms(roomA, roomB); // Por isso que o método é estático!
     }
 
     void RandomFillMap(){
@@ -225,5 +282,42 @@ public class MapGenerator : MonoBehaviour
         return x >= 0 && x < width && y >=0 && y < height;
     }
 
-    
+    class Room {
+        public List<Coord> tiles;
+        public List<Coord> edgeTiles;
+        public List<Room> connectedRooms;
+        public int roomSize;
+
+        public Room(){}
+        public Room(List<Coord> roomTiles, int[,] map){
+            tiles = roomTiles;
+            roomSize = tiles.Count;
+            connectedRooms = new List<Room>();
+
+            edgeTiles = new List<Coord>();
+            foreach (Coord tile in tiles){
+                for (int x = tile.tileX - 1; x < tile.tileX + 1; x++){ // Loop que pega o tile antes do tile, e o tile depois do tile
+                    for (int y = tile.tileY - 1; y < tile.tileY + 1; y++)
+                    {
+                        if (y == tile.tileY || x == tile.tileX) // Garantindo que não tá pegando diagonais
+                        {
+                            if (map[x,y] == 1) // Se encontrar uma parede
+                            {
+                                edgeTiles.Add(tile); // Significa que esse tile é uma borda
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void ConnectRooms(Room roomA, Room roomB){
+            roomA.connectedRooms.Add(roomB);
+            roomB.connectedRooms.Add(roomA);
+        }
+
+        public bool IsConnected(Room otherRoom){
+            return connectedRooms.Contains(otherRoom);
+        }
+    }
 }
