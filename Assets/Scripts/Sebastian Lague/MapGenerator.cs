@@ -78,6 +78,22 @@ public class MapGenerator : MonoBehaviour
                 }
             }
         }
+
+        List<List<Coord>> roomRegions = GetRegions(0);
+
+        int roomThresholdSize = 50;
+
+        foreach (List<Coord> roomRegion in roomRegions)
+        {
+            if (roomRegion.Count < roomThresholdSize) // "Se a quantidade de tiles parede agrupadas for menor do que o threshold"
+            {
+                // Pinta todas as paredes como buracos
+                foreach (Coord tile in roomRegion)
+                {
+                    map[tile.tileX,tile.tileY] = 1;
+                }
+            }
+        }
     }
 
     void RandomFillMap(){
@@ -209,21 +225,5 @@ public class MapGenerator : MonoBehaviour
         return x >= 0 && x < width && y >=0 && y < height;
     }
 
-
-    /*
-    void OnDrawGizmos()
-    {
-        if (map != null)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    Gizmos.color = (map[x, y] == 1) ? Color.black : Color.white;
-                    Vector3 pos = new Vector3(-width/2 + x + .5f, 0, -height/2 + y + .5f);
-                    Gizmos.DrawCube(pos, Vector3.one);
-                }
-            }
-        }
-    }*/
+    
 }
