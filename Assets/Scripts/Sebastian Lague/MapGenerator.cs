@@ -38,6 +38,8 @@ public class MapGenerator : MonoBehaviour
             SmoothMap();
         }
 
+        ProcessMap();
+
         int borderSize = 5;
         int[,] borderedMap = new int[width + borderSize * 2, height + borderSize * 2];
 
@@ -58,6 +60,24 @@ public class MapGenerator : MonoBehaviour
         MeshGenerator meshGenerator = GetComponent<MeshGenerator>();
         meshGenerator.GenerateMesh(borderedMap, 1);
 
+    }
+
+    void ProcessMap(){
+        List<List<Coord>> wallRegions = GetRegions(1);
+
+        int wallThresholdSize = 50;
+
+        foreach (List<Coord> wallRegion in wallRegions)
+        {
+            if (wallRegion.Count < wallThresholdSize) // "Se a quantidade de tiles parede agrupadas for menor do que o threshold"
+            {
+                // Pinta todas as paredes como buracos
+                foreach (Coord tile in wallRegion)
+                {
+                    map[tile.tileX,tile.tileY] = 0;
+                }
+            }
+        }
     }
 
     void RandomFillMap(){
@@ -105,7 +125,7 @@ public class MapGenerator : MonoBehaviour
         {
             for (int neighbourY = gridY - 1; neighbourY <= gridY + 1; neighbourY++)
             {
-                if (neighbourX >= 0 && neighbourY >= 0 && neighbourX < width && neighbourY < height)
+                if (IsInMapRange(neighbourX, neighbourY))
                 {
                     if (neighbourX != gridX || neighbourY != gridY)
                     {
@@ -118,6 +138,77 @@ public class MapGenerator : MonoBehaviour
         }
         return wallCount;
     }
+
+    struct Coord {
+        public int tileX;
+        public int tileY;
+
+        public Coord (int x, int y) {
+            tileX = x;
+            tileY = y;
+        }
+    }
+
+    List<Coord> GetRegionTiles(int startX, int startY){ // Parâmetro pega posição aleatória no mapa e preenche baseado no "pixel" escolhido (balde de tinta)
+        List<Coord> tiles = new List<Coord>();
+        int[,] mapFlags = new int[width, height];
+        int tileType = map[startX, startY]; // O pixel aleatório escolhido foi chão ou parede?
+
+        Queue<Coord> queue = new Queue<Coord>();
+        queue.Enqueue(new Coord(startX, startY));
+        mapFlags[startX, startY] = 1; // "ja olhei"
+
+        while (queue.Count > 0)
+        {
+            Coord tile = queue.Dequeue(); 
+            tiles.Add(tile);
+
+            for (int x = tile.tileX -1; x <= tile.tileX + 1; x++)
+            {
+                for (int y = tile.tileY -1; y <= tile.tileY + 1; y++)
+                {
+                    if (IsInMapRange(x, y) && (y == tile.tileY || x == tile.tileX)) // GARANTINDO QUE NÃO FORMAM DIAGONAIS
+                    {
+                        if (mapFlags[x,y] == 0 && map[x,y] == tileType) // garantindo que não olhei pra o tile ainda, e que ele faz parte do mesmo grupo de coisas que quero pintar
+                        {
+                            mapFlags[x,y] = 1;
+                            queue.Enqueue(new Coord(x,y));
+                        }
+                    }
+                }
+            }
+        }
+        return tiles;
+    }
+
+    List<List<Coord>> GetRegions(int tileType){ // Pega todas as regiões existentes de balde de tinta e coloca numa lista de regioes
+        List<List<Coord>> regions = new List<List<Coord>>();
+        int [,] mapFlags = new int[width, height];
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if (mapFlags[x,y] == 0 && map[x,y] == tileType)
+                {
+                    List<Coord> newRegion = GetRegionTiles(x,y);
+                    regions.Add(newRegion);
+
+                    foreach (Coord tile in newRegion)
+                    {
+                        mapFlags[tile.tileX, tile.tileY] = 1;
+                    }
+                }
+            }
+        }
+
+        return regions;
+    }
+
+    bool IsInMapRange(int x, int y){
+        return x >= 0 && x < width && y >=0 && y < height;
+    }
+
 
     /*
     void OnDrawGizmos()
