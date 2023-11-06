@@ -98,6 +98,11 @@ public class MapGenerator : MonoBehaviour
             }
         }
 
+        survivingRooms.Sort();
+        foreach (Room item in survivingRooms)
+        {
+            Debug.Log(item.roomSize);   
+        }
         ConnectClosestRooms(survivingRooms);
     }
 
@@ -288,7 +293,7 @@ public class MapGenerator : MonoBehaviour
         return x >= 0 && x < width && y >=0 && y < height;
     }
 
-    class Room {
+    class Room : IComparable<Room> { // Ao aplicar essa interface, agora os quartos são ordenáveis!!
         public List<Coord> tiles;
         public List<Coord> edgeTiles;
         public List<Room> connectedRooms;
@@ -324,6 +329,10 @@ public class MapGenerator : MonoBehaviour
 
         public bool IsConnected(Room otherRoom){
             return connectedRooms.Contains(otherRoom);
+        }
+
+        public int CompareTo(Room otherRoom) {
+            return otherRoom.roomSize.CompareTo(roomSize); // Comparando e ordenando com base nessa comparação
         }
     }
 }
